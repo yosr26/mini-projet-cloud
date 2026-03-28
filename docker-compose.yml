@@ -1,0 +1,178 @@
+version: "3.9"
+
+# ════════════════════════════════════════════════════════════
+#  SERVICES
+# ════════════════════════════════════════════════════════════
+services:
+  # ── 1. Base de données PostgreSQL ───────────────────────────────────────────
+  db:
+    image: postgres:14
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: tasks
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - db-data:/var/lib/postgresql/data # Persistance des données
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tasks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 2. Cache Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    restart: always
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── 3. Application Flask — Instance 1 ───────────────────────────────────────
+  app1:
+    build: ./app
+    container_name: flask_app1
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_NAME: tasks
+      DB_USER: admin
+      DB_PASSWORD: admin
+      REDIS_HOST: redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+
+  # ── 4. Application Flask — Instance 2 ───────────────────────────────────────
+  app2:
+    build: ./app
+    container_name: flask_app2
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_NAME: tasks
+      DB_USER: admin
+      DB_PASSWORD: admin
+      REDIS_HOST: redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+
+  # ── 5. Application Flask — Instance 3 ───────────────────────────────────────
+  app3:
+    build: ./app
+    container_name: flask_app3
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_NAME: tasks
+      DB_USER: admin
+      DB_PASSWORD: admin
+      REDIS_HOST: redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+
+  # ── 6. Reverse Proxy Nginx ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80" # Seul port exposé vers l'extérieur !
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - frontend
+
+  # ── 7. Monitoring — Prometheus ───────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - backend
+      - frontend
+
+  # ── 8. Monitoring — Grafana ──────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - frontend
+
+  # ── 9. Monitoring — cAdvisor (métriques des conteneurs) ──────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - backend
+
+# ════════════════════════════════════════════════════════════
+#  RÉSEAUX
+# ════════════════════════════════════════════════════════════
+networks:
+  frontend:
+    # Réseau entre Nginx et les applis Flask
+    driver: bridge
+  backend:
+    # Réseau interne entre Flask, PostgreSQL et Redis (invisible de l'extérieur)
+    driver: bridge
+
+# ════════════════════════════════════════════════════════════
+#  VOLUMES (persistance des données)
+# ════════════════════════════════════════════════════════════
+volumes:
+  db-data: # Données PostgreSQL
+  prometheus-data: # Données Prometheus
+  grafana-data: # Dashboards Grafana

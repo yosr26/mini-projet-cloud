@@ -1,0 +1,23 @@
+# prometheus.yml — Configuration de Prometheus
+global:
+  scrape_interval: 15s # Collecte les métriques toutes les 15 secondes
+
+scrape_configs:
+  # Prometheus se surveille lui-même
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Collecte les métriques de chaque instance Flask
+  - job_name: "flask_app"
+    static_configs:
+      - targets:
+          - "app1:5000"
+          - "app2:5000"
+          - "app3:5000"
+    metrics_path: /metrics
+
+  # Collecte les métriques des conteneurs Docker via cAdvisor
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
