@@ -6,6 +6,7 @@ import json
 import time
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
+#v2
 app = Flask(__name__)
 
 redis_client = redis.Redis(
