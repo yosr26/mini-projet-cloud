@@ -8,14 +8,12 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 
 app = Flask(__name__)
 
-# ─── Connexion Redis ───────────────────────────────────────────────────────────
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST", "redis"),
     port=6379,
     decode_responses=True
 )
 
-# ─── Métriques Prometheus ──────────────────────────────────────────────────────
 REQUEST_COUNT = Counter(
     'app_request_count_total',
     'Nombre total de requêtes',
@@ -31,7 +29,6 @@ VISIT_COUNTER = Counter(
     'Nombre total de visites'
 )
 
-# ─── Connexion PostgreSQL ──────────────────────────────────────────────────────
 def get_db():
     """Ouvre une connexion à la base PostgreSQL."""
     conn = psycopg2.connect(
@@ -58,7 +55,6 @@ def init_db():
     cur.close()
     conn.close()
 
-# ─── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -183,7 +179,6 @@ def metrics():
     """Endpoint Prometheus — expose les métriques."""
     return generate_latest(), 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
-# ─── Démarrage ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     # On attend un peu que PostgreSQL soit prêt
     time.sleep(3)

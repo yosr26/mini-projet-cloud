@@ -1,10 +1,6 @@
 version: "3.9"
 
-# ════════════════════════════════════════════════════════════
-#  SERVICES
-# ════════════════════════════════════════════════════════════
 services:
-  # ── 1. Base de données PostgreSQL ───────────────────────────────────────────
   db:
     image: postgres:14
     container_name: postgres_db
@@ -23,7 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── 2. Cache Redis ───────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: redis_cache
@@ -36,7 +31,6 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── 3. Application Flask — Instance 1 ───────────────────────────────────────
   app1:
     build: ./app
     container_name: flask_app1
@@ -56,7 +50,6 @@ services:
       - backend
       - frontend
 
-  # ── 4. Application Flask — Instance 2 ───────────────────────────────────────
   app2:
     build: ./app
     container_name: flask_app2
@@ -76,7 +69,6 @@ services:
       - backend
       - frontend
 
-  # ── 5. Application Flask — Instance 3 ───────────────────────────────────────
   app3:
     build: ./app
     container_name: flask_app3
@@ -96,7 +88,6 @@ services:
       - backend
       - frontend
 
-  # ── 6. Reverse Proxy Nginx ───────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: nginx_proxy
@@ -112,7 +103,6 @@ services:
     networks:
       - frontend
 
-  # ── 7. Monitoring — Prometheus ───────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -126,7 +116,6 @@ services:
       - backend
       - frontend
 
-  # ── 8. Monitoring — Grafana ──────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -143,7 +132,6 @@ services:
     networks:
       - frontend
 
-  # ── 9. Monitoring — cAdvisor (métriques des conteneurs) ──────────────────────
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
@@ -158,9 +146,6 @@ services:
     networks:
       - backend
 
-# ════════════════════════════════════════════════════════════
-#  RÉSEAUX
-# ════════════════════════════════════════════════════════════
 networks:
   frontend:
     # Réseau entre Nginx et les applis Flask
@@ -169,9 +154,6 @@ networks:
     # Réseau interne entre Flask, PostgreSQL et Redis (invisible de l'extérieur)
     driver: bridge
 
-# ════════════════════════════════════════════════════════════
-#  VOLUMES (persistance des données)
-# ════════════════════════════════════════════════════════════
 volumes:
   db-data: # Données PostgreSQL
   prometheus-data: # Données Prometheus
